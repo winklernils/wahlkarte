@@ -29,22 +29,47 @@ export const CITIES: [string, number, number, "l" | "r"][] = [
   ["Leipzig", 12.374, 51.34, "r"], ["Dresden", 13.738, 51.05, "r"], ["Hannover", 9.732, 52.375, "r"],
   ["Bremen", 8.807, 53.075, "l"], ["Nürnberg", 11.077, 49.452, "r"], ["Ruhrgebiet", 7.2, 51.48, "l"],
 ];
-/** Largest raster cell value: for one party, or across all selectable parties (shared scale). */
+/**
+ * Raster values of one party: absolute votes, or share of the cell's valid votes in %.
+ * Cached per vote / party / measure.
+ */
+const valueCache = new Map<string, Float64Array>();
+export function gridValues(grid: Grid, vote: "e" | "z", party: string, measure: "abs" | "pct"): Float64Array {
+  const key = `${vote}|${party}|${measure}`;
+  if (!valueCache.has(key)) {
+    const n = grid.lon.length;
+    const out = new Float64Array(n);
+    const arr = party === "UNION" ? null : grid[vote][party];
+    const valid = grid[vote]["valid"];
+    for (let i = 0; i < n; i++) {
+      const v = arr ? arr[i] ?? 0 : grid[vote]["CDU"][i] + grid[vote]["CSU"][i];
+      out[i] = measure === "pct" ? (valid[i] > 0 ? (100 * v) / valid[i] : 0) : v;
+    }
+    valueCache.set(key, out);
+  }
+  return valueCache.get(key)!;
+}
+
+/**
+ * Largest raster value for the height scale: one party, or all selectable parties (shared scale).
+ * For shares only cells with at least 100 valid votes count, so a nearly empty edge cell cannot set
+ * the scale; values above it are capped at full height.
+ */
 const gridMaxCache = new Map<string, number>();
-export function gridMax(grid: Grid, vote: "e" | "z", party: string | null): number {
-  const key = `${vote}|${party ?? "*"}`;
+export function gridMax(grid: Grid, vote: "e" | "z", party: string | null, measure: "abs" | "pct" = "abs"): number {
+  const key = `${vote}|${party ?? "*"}|${measure}`;
   if (!gridMaxCache.has(key)) {
     const parties = party ? [party] : ["UNION", "AfD", "SPD", "GRÜNE", "Die Linke", "BSW", "SSW"];
+    const valid = grid[vote]["valid"];
     let m = 0;
     for (const p of parties) {
-      const arr = p === "UNION" ? null : grid[vote][p];
-      for (let i = 0; i < grid.lon.length; i++) {
-        const v = arr ? arr[i] : grid[vote]["CDU"][i] + grid[vote]["CSU"][i];
-        if (v > m) m = v;
+      const vals = gridValues(grid, vote, p, measure);
+      for (let i = 0; i < vals.length; i++) {
+        if (measure === "pct" && valid[i] < 100) continue;
+        if (vals[i] > m) m = vals[i];
       }
     }
     gridMaxCache.set(key, m);
   }
   return gridMaxCache.get(key)!;
 }
-

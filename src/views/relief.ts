@@ -2,15 +2,24 @@ import { Deck, MapView, type MapViewState } from "@deck.gl/core";
 import { ColumnLayer, GeoJsonLayer, TextLayer } from "@deck.gl/layers";
 import { color as d3color } from "d3";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
-import { type Grid, loadGrid, partyVotes } from "../data";
-import { fmt, t } from "../i18n";
+import { type Grid, loadGrid } from "../data";
+import { t } from "../i18n";
 import { isDark, partyColor } from "../parties";
 import type { Area, ViewCtx, ViewHandle } from "./common";
-import { CITIES, gridMax, ramp, rampIndex } from "./style";
-import { niceSteps, scaleMax } from "./votes";
+import { CITIES, gridMax, gridValues, ramp, rampIndex } from "./style";
+import { fmtMeasure, measureOf, niceSteps, scaleMax } from "./votes";
 
 // tallest possible column (Germany is ≈ 880 km north–south)
-const MAX_HEIGHT_M = { wk: 130_000, land: 260_000, grid: 150_000 };
+const MAX_HEIGHT_M = { wk: 130_000, land: 260_000, grid: 150_000, gridPct: 55_000 };
+/**
+ * Flat map layers are drawn in order without depth testing: they all lie at height 0, and with the
+ * depth test they flicker against each other ("z-fighting") while the camera moves.
+ */
+const FLAT = { depthCompare: "always", depthWriteEnabled: false } as const;
+
+/** Colours of the schematic map under the raster (shared with the 2D raster via CSS). */
+const PLANE = { fill: "#c9cbd2", land: "#f2f3f6", outline: "#6d7080" };
+
 // 5 km raster: square columns (4-sided "disks" turned 45°), ≈3.4 km wide like the 2D columns
 const GRID_RADIUS_M = 2400;
 
@@ -79,7 +88,7 @@ export function reliefView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
   const legendSteps = (max: number, elevationScale: number, colourOf?: (v: number) => string) => {
     legend.replaceChildren();
     legend.append(
-      ...niceSteps(max).map((v) => {
+      ...niceSteps(max, ctx.state.measure).map((v) => {
         const s = document.createElement("span");
         s.className = "relief-step";
         if (colourOf) {
@@ -88,7 +97,7 @@ export function reliefView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
           chip.style.background = colourOf(v);
           s.append(chip);
         }
-        s.append(`${fmt(v)} ≙ ${Math.round((v * elevationScale) / 1000)} km`);
+        s.append(`${fmtMeasure(v, ctx.state.measure)} ≙ ${Math.round((v * elevationScale) / 1000)} km`);
         return s;
       }),
     );
@@ -100,10 +109,11 @@ export function reliefView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
     grid = await loadGrid();
     if (my !== token) return;
     const g = grid;
-    const max = gridMax(g, state.vote, state.scale === "shared" ? null : state.party);
-    const elevationScale = MAX_HEIGHT_M.grid / max;
-    const arr = state.party === "UNION" ? null : g[state.vote][state.party];
-    const value = (i: number) => (arr ? arr[i] : g[state.vote]["CDU"][i] + g[state.vote]["CSU"][i]);
+    const max = gridMax(g, state.vote, state.scale === "shared" ? null : state.party, state.measure);
+    // every cell has a share in percent mode: lower columns keep the land behind them visible
+    const elevationScale = (state.measure === "pct" ? MAX_HEIGHT_M.gridPct : MAX_HEIGHT_M.grid) / max;
+    const vals = gridValues(g, state.vote, state.party, state.measure);
+    const value = (i: number) => Math.min(vals[i], max); // shares of near-empty cells are capped
     const cells: number[] = [];
     for (let i = 0; i < g.lon.length; i++) if (value(i) > 0 && value(i) / max > 0.0015) cells.push(i);
     const colourAt = (i: number) => {
@@ -113,23 +123,33 @@ export function reliefView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
 
     deck?.setProps({
       layers: [
+        // schematic map: gray Germany, dark federal outline, light Land borders – nothing else
+        new GeoJsonLayer({
+          id: "outline",
+          data: data.landFeatures,
+          filled: false,
+          stroked: true,
+          getLineColor: rgb(PLANE.outline),
+          lineWidthMinPixels: 3, // half of it is covered by the plane: the outer half is the federal border
+          parameters: FLAT,
+        }),
         new GeoJsonLayer({
           id: "plane",
           data: data.wkFeatures,
           filled: true,
-          stroked: true,
-          getFillColor: rgb("#fbfbfd"),
-          getLineColor: rgb("#e6e8ef"),
-          lineWidthMinPixels: 0.5,
-          pickable: true,
+          stroked: false,
+          getFillColor: rgb(PLANE.fill),
+          pickable: true, // hover shows the Wahlkreis
+          parameters: FLAT,
         }),
         new GeoJsonLayer({
           id: "laender",
           data: data.landFeatures,
           filled: false,
           stroked: true,
-          getLineColor: rgb("#c4c7d4"),
-          lineWidthMinPixels: 0.9,
+          getLineColor: rgb(PLANE.land),
+          lineWidthMinPixels: 1,
+          parameters: FLAT,
         }),
         new ColumnLayer<number>({
           id: "raster",
@@ -145,9 +165,12 @@ export function reliefView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
           getPosition: (i) => [g.lon[i], g.lat[i]],
           getElevation: (i) => value(i),
           getFillColor: colourAt,
-          updateTriggers: { getElevation: [state.party, state.vote, state.scale], getFillColor: [state.party, state.vote, state.scale] },
-          // soft light like the 2D lit / shaded column sides
-          material: { ambient: 0.62, diffuse: 0.5, shininess: 12, specularColor: [40, 40, 40] },
+          updateTriggers: {
+            getElevation: [state.party, state.vote, state.scale, state.measure],
+            getFillColor: [state.party, state.vote, state.scale, state.measure],
+          },
+          // soft, matte light like the 2D lit / shaded column sides (no specular shine when rotating)
+          material: { ambient: 0.62, diffuse: 0.5, shininess: 0, specularColor: [0, 0, 0] },
         }),
         new TextLayer<(typeof CITIES)[number]>({
           id: "cities",
@@ -192,9 +215,9 @@ export function reliefView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
     // one item per Wahlkreis or Land
     const items: Item[] = isLand
       ? data.results.laender.map((l) => ({ area: { kind: "land", id: l.id }, land: l.id, lon: l.lon, lat: l.lat,
-          votes: partyVotes(l, state.party, state.vote) }))
+          votes: measureOf(l, state.party, state.vote, state.measure) }))
       : data.results.wahlkreise.map((w) => ({ area: { kind: "wk", id: w.id }, land: w.land, lon: w.lon, lat: w.lat,
-          votes: partyVotes(w, state.party, state.vote) }));
+          votes: measureOf(w, state.party, state.vote, state.measure) }));
     const byKey = new Map(items.map((i) => [String(i.area.id), i]));
     const shapes: FeatureCollection<Geometry, { item: Item }> = {
       type: "FeatureCollection",
@@ -203,7 +226,10 @@ export function reliefView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
         : data.wkFeatures.features.map((f) => ({ ...f, properties: { item: byKey.get(String(f.properties.id))! } })),
     };
     const fill = (i: Item) => (i.votes === null ? baseFill : rgb(partyColor(state.party, i.land)));
-    const triggers = { getElevation: [state.party, state.vote, state.level], getFillColor: [state.party, dark, state.level] };
+    const triggers = {
+      getElevation: [state.party, state.vote, state.level, state.measure],
+      getFillColor: [state.party, dark, state.level],
+    };
 
     const base = new GeoJsonLayer<{ item: Item }>({
       id: "base",
@@ -215,6 +241,7 @@ export function reliefView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
       lineWidthMinPixels: isLand ? 1 : 0.5,
       pickable: state.relief === "columns",
       updateTriggers: { getFillColor: [dark] },
+      parameters: FLAT,
     });
     const lands = new GeoJsonLayer({
       id: "laender",
@@ -223,6 +250,8 @@ export function reliefView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
       stroked: true,
       getLineColor: rgb(dark ? "#9a9a9a" : "#6b6b6b"),
       lineWidthMinPixels: 1.2,
+      // in "areas" mode the borders must stay hidden behind the raised blocks
+      parameters: state.relief === "columns" ? FLAT : undefined,
     });
     const layers =
       state.relief === "columns"
@@ -243,7 +272,7 @@ export function reliefView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
               getElevation: (i) => i.votes ?? 0,
               getFillColor: fill,
               updateTriggers: triggers,
-              material: { ambient: 0.55, diffuse: 0.6, shininess: 20 },
+              material: { ambient: 0.55, diffuse: 0.6, shininess: 0, specularColor: [0, 0, 0] },
             }),
           ]
         : [

@@ -1,12 +1,12 @@
 import { color as d3color, interpolateLab, select } from "d3";
-import { CITIES, RAMP_STEPS, gridMax, ramp, rampIndex } from "./style";
+import { CITIES, RAMP_STEPS, gridMax, gridValues, ramp, rampIndex } from "./style";
 import type { Feature, Geometry } from "geojson";
-import { type AreaResult, loadGrid, partyVotes } from "../data";
-import { fmt, getLang, t } from "../i18n";
+import { type AreaResult, loadGrid } from "../data";
+import { fmt, getLang, pct, t } from "../i18n";
 import { partyColor } from "../parties";
 import { type Area, type ViewCtx, type ViewHandle, H, W, interactive } from "./common";
 import { projectionFor } from "./projection";
-import { niceSteps, scaleMax } from "./votes";
+import { fmtMeasure, measureOf, niceSteps, scaleMax } from "./votes";
 
 /**
  * 2D spike map in the style of population-density spike maps: the map plane is tilted
@@ -36,7 +36,9 @@ export function spikesView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
     const my = ++token;
     const { data, state } = ctx;
     const mode: keyof typeof STYLE = state.level === "land" ? "land" : state.grid ? "grid" : "wk";
-    const st = STYLE[mode];
+    // shares cover the whole country (no empty cells), so the raster gets shorter columns and a
+    // steeper view in percent mode – otherwise the front rows would hide everything behind them
+    const st = mode === "grid" && state.measure === "pct" ? { ...STYLE.grid, maxH: 60, tilt: 0.84 } : STYLE[mode];
     const { proj, path } = projectionFor(data);
     const TILT = st.tilt;
     const top = st.maxH + MARGIN_TOP;
@@ -69,6 +71,11 @@ export function spikesView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
         () => ctx,
       );
     } else {
+      if (mode === "grid") {
+        // schematic map: thick dark outline under the gray plane – its outer half is the federal border
+        plane.append("g").selectAll("path").data(data.landFeatures.features).join("path")
+          .attr("d", path).attr("class", "country-outline");
+      }
       interactive(
         plane.append("g")
           .selectAll<SVGPathElement, Feature<Geometry, { id: number }>>("path")
@@ -91,11 +98,11 @@ export function spikesView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
       const grid = await loadGrid();
       if (my !== token) return; // a newer draw started meanwhile
       loading.remove();
-      max = gridMax(grid, state.vote, state.scale === "shared" ? null : state.party);
-      const arr = state.party === "UNION" ? null : grid[state.vote][state.party];
+      max = gridMax(grid, state.vote, state.scale === "shared" ? null : state.party, state.measure);
+      const vals = gridValues(grid, state.vote, state.party, state.measure);
       spikes = [];
       for (let i = 0; i < grid.lon.length; i++) {
-        const v = arr ? arr[i] : grid[state.vote]["CDU"][i] + grid[state.vote]["CSU"][i];
+        const v = vals[i];
         if (!(v > 0) || (v / max) * st.maxH < 0.25) continue; // practically empty cells stay flat
         const [x, y] = P(grid.lon[i], grid.lat[i]);
         const land = data.wkById.get(grid.wk[i])?.land;
@@ -108,14 +115,14 @@ export function spikesView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
           ? data.results.laender.map((l) => ({ a: l, area: { kind: "land", id: l.id } as Area, land: l.id }))
           : data.results.wahlkreise.map((w) => ({ a: w, area: { kind: "wk", id: w.id } as Area, land: w.land }));
       spikes = src.flatMap((d) => {
-        const v = partyVotes(d.a, state.party, state.vote);
+        const v = measureOf(d.a, state.party, state.vote, state.measure);
         if (!v) return [];
         const [x, y] = P(d.a.lon, d.a.lat);
         return [{ x, y, v, color: partyColor(state.party, d.land), area: d.area }];
       });
     }
     spikes.sort((a, b) => a.y - b.y || a.x - b.x); // back to front
-    const h = (v: number) => (v / max) * st.maxH;
+    const h = (v: number) => Math.min(1, v / max) * st.maxH; // capped (shares of near-empty cells)
     const tint = (c: string) => d3color(interpolateLab("#ffffff", c)(mode === "grid" ? 0.16 : 0.22))!.formatHex();
     const spikePath = (s: Spike) =>
       `M${(s.x - st.w / 2).toFixed(1)},${s.y.toFixed(1)}L${s.x.toFixed(1)},${(s.y - h(s.v)).toFixed(1)}L${(s.x + st.w / 2).toFixed(1)},${s.y.toFixed(1)}`;
@@ -206,13 +213,14 @@ export function spikesView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
         .join("text")
         .attr("x", (d) => d.x)
         .attr("y", (d) => d.y - h(d.v) - 5)
-        .text((d) => (d.v >= 1e6 ? `${fmt(Math.round(d.v / 1e5) / 10)} ${getLang() === "de" ? "Mio." : "M"}` : `${fmt(Math.round(d.v / 1e3))}k`));
+        .text((d) => state.measure === "pct" ? pct(d.v)
+          : d.v >= 1e6 ? `${(Math.round(d.v / 1e5) / 10).toLocaleString(getLang() === "de" ? "de-DE" : "en-GB", { minimumFractionDigits: 1 })} ${getLang() === "de" ? "Mio." : "M"}` : `${fmt(Math.round(d.v / 1e3))}k`);
     }
 
     // height legend in the empty corner east of Bavaria (bottom right)
     const lg = svg.append("g").attr("class", "spike-legend").attr("transform", `translate(${W - 190}, ${vbH - 30})`);
     const col = partyColor(state.party, "NW");
-    niceSteps(max).forEach((v, i) => {
+    niceSteps(max, state.measure).forEach((v, i) => {
       const x = i * 70;
       if (mode === "grid") {
         const rp = ramp(col);
@@ -224,7 +232,7 @@ export function spikesView(el: HTMLElement, ctx0: ViewCtx): ViewHandle {
           .attr("d", `M${x - st.w / 2},0L${x},${-h(v)}L${x + st.w / 2},0Z`)
           .attr("fill", tint(col)).attr("stroke", col).attr("stroke-width", st.stroke);
       }
-      lg.append("text").attr("x", x).attr("y", 14).attr("text-anchor", "middle").text(fmt(v));
+      lg.append("text").attr("x", x).attr("y", 14).attr("text-anchor", "middle").text(fmtMeasure(v, state.measure));
     });
   };
 

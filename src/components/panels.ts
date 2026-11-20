@@ -6,6 +6,11 @@ import { type Area, areaOf, landOf } from "../views/common";
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 const isVotesView = (s: State) => s.view === "spikes" || s.view === "relief";
+/** Vote counts, shortened from a million on (e.g. "11,2 Mio."). */
+const compact = (v: number) =>
+  v >= 1e6
+    ? `${(Math.round(v / 1e5) / 10).toLocaleString(getLang() === "de" ? "de-DE" : "en-GB", { minimumFractionDigits: 1 })} ${getLang() === "de" ? "Mio." : "M"}`
+    : fmt(Math.round(v));
 
 // ------------------------------------------------------------------ details ---
 export function renderDetails(el: HTMLElement, data: Data, s: State, a: Area | null) {
@@ -38,7 +43,9 @@ export function renderDetails(el: HTMLElement, data: Data, s: State, a: Area | n
     partyBox = `<div class="party-box" style="--c:${partyColor(s.party, land)}">
       <span class="swatch"></span><strong>${esc(partyLabel(s.party))}</strong>
       ${v === null ? `<span class="muted">${t("notOnBallot")}</span>`
-        : `<span class="big">${fmt(v)}</span> ${t("votes")} · ${pct((100 * v) / valid)}`}
+        : s.measure === "pct"
+          ? `<span class="big">${pct((100 * v) / valid)}</span> ${fmt(v)} ${t("votes")}`
+          : `<span class="big">${fmt(v)}</span> ${t("votes")} · ${pct((100 * v) / valid)}`}
     </div>`;
   }
   let seat = "";
@@ -63,7 +70,8 @@ export function renderDetails(el: HTMLElement, data: Data, s: State, a: Area | n
         const c = p === t("others") ? "#9a9a9a" : partyColor(p, land);
         return `<li><span class="name">${esc(partyLabel(p))}</span>
           <span class="bar"><span style="width:${(share / maxShare) * 100}%;--c:${c}"></span></span>
-          <span class="val" title="${fmt(v)} ${t("votes")}">${pct(share)}</span></li>`;
+          <span class="val" title="${s.measure === "pct" ? `${fmt(v)} ${t("votes")}` : pct(share)}">${
+            s.measure === "pct" ? pct(share) : compact(v)}</span></li>`;
       }).join("")}
     </ol>
     <dl class="facts">
@@ -146,7 +154,8 @@ export function renderLegend(el: HTMLElement, data: Data, s: State) {
          <span class="key"><span class="swatch" style="--c:${partyColor("CSU")}"></span>CSU (${getLang() === "de" ? "Bayern" : "Bavaria"})</span>`
       : `<span class="key"><span class="swatch" style="--c:${partyColor(s.party)}"></span>${esc(partyLabel(s.party))}</span>`;
     const missing = s.party === "SSW" ? ` · ${getLang() === "de" ? "SSW tritt nur in Schleswig-Holstein an" : "SSW only stands in Schleswig-Holstein"}` : "";
-    const desc = s.level === "land" ? "legendSpikesLand" : s.level === "wk" && s.grid ? "legendGrid" : "legendSpikes";
+    const base = s.level === "land" ? "legendSpikesLand" : s.level === "wk" && s.grid ? "legendGrid" : "legendSpikes";
+    const desc = (s.measure === "pct" ? `${base}Pct` : base) as Key;
     el.innerHTML = `<div class="keys">${union}</div><p>${t(desc)}${missing}</p>`;
     return;
   }
@@ -192,15 +201,21 @@ export function renderNational(el: HTMLElement, data: Data, s: State) {
   const other = valid - parts.reduce((x, [, v]) => x + v, 0);
   parts.push([t("others"), other, "#b5b5b5"]);
   el.innerHTML = `
-    <div class="nat-bar" role="img" aria-label="${t("national")}: ${parts.map(([l, v]) => `${esc(l)} ${pct((100 * v) / valid)}`).join(", ")}">
+    <div class="nat-bar" role="img" aria-label="${t("national")}: ${parts.map(([l, v]) => `${esc(l)} ${pct((100 * v) / valid)}, ${fmt(v)} ${t("votes")}`).join("; ")}">
       ${parts.map(([label, v, c]) => {
-        const share = pct((100 * v) / valid);
+        const share = s.measure === "pct" ? pct((100 * v) / valid) : compact(v);
         return `<span class="nat-seg" style="flex:${v};--c:${c};--fg:${textOn(c)}" data-label="${esc(label)}" data-share="${share}" title="${esc(label)}: ${share}">
           <span class="nat-in"><b>${esc(label)}</b> ${share}</span></span>`;
       }).join("")}
     </div>
     <div class="nat-out" aria-hidden="true"></div>
-    <p class="nat-caption">${t("national")}, ${t(s.vote === "e" ? "vote.e" : "vote.z")}</p>`;
+    <div class="nat-foot">
+      <p class="nat-caption">${t("national")}, ${t(s.vote === "e" ? "vote.e" : "vote.z")}</p>
+      ${segmented(t("measure"), "measure", [{ value: "pct", label: t("measure.pct") }, { value: "abs", label: t("measure.abs") }], s)}
+    </div>`;
+  el.querySelectorAll<HTMLInputElement>("input[data-key=measure]").forEach((i) =>
+    i.addEventListener("change", () => setState({ measure: i.value as State["measure"] })),
+  );
   layoutNational(el);
   if (!el.dataset.observed) {
     el.dataset.observed = "1";

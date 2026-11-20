@@ -15,6 +15,8 @@ export interface State {
   relief: "columns" | "areas";
   /** 2D spike map at Wahlkreis level: fine 5 km grid (true) or one spike per Wahlkreis */
   grid: boolean;
+  /** vote views and labels: absolute votes or shares of valid votes (%) */
+  measure: "abs" | "pct";
 }
 
 const DEFAULTS: State = {
@@ -28,6 +30,7 @@ const DEFAULTS: State = {
   scale: "party",
   relief: "columns",
   grid: true,
+  measure: "abs",
 };
 const ALLOWED: { [K in keyof State]?: readonly string[] } = {
   view: ["geo", "hex", "circles", "spikes", "relief"],
@@ -37,6 +40,7 @@ const ALLOWED: { [K in keyof State]?: readonly string[] } = {
   size: ["eligible", "valid"],
   scale: ["shared", "party"],
   relief: ["columns", "areas"],
+  measure: ["abs", "pct"],
 };
 
 function fromHash(): State {

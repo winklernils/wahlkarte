@@ -54,6 +54,10 @@ h1 { font: 700 2rem/1.1 var(--serif); margin: 0; letter-spacing: -0.01em; }
 .nat-call.static { position: static; border: 0; padding: 2px 0; background: none; }
 .nat-leads { position: absolute; left: 0; top: 0; z-index: 0; overflow: visible; }
 .nat-leads polyline { fill: none; stroke: var(--muted); stroke-width: 1; opacity: 0.7; }
+.nat-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-top: 4px; flex-wrap: wrap; }
+.nat-foot .seg { margin-left: auto; }
+.nat-foot .seg legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.nat-foot .seg span { padding: 3px 10px; font-size: 0.8rem; }
 .nat-caption { margin: 4px 0 0; font-size: 0.78rem; color: var(--muted); }
 
 /* controls */
@@ -131,7 +135,7 @@ h1 { font: 700 2rem/1.1 var(--serif); margin: 0; letter-spacing: -0.01em; }
 .party-box .swatch { display: none; }
 .party-box .big { font: 700 1.4rem var(--serif); display: block; }
 .bars { list-style: none; padding: 0; margin: 0 0 12px; }
-.bars li { display: grid; grid-template-columns: 92px 1fr 54px; gap: 8px; align-items: center; font-size: 0.82rem; padding: 2px 0; }
+.bars li { display: grid; grid-template-columns: 92px 1fr 64px; gap: 8px; align-items: center; font-size: 0.82rem; padding: 2px 0; }
 .bars .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bars .bar { height: 10px; background: var(--line); border-radius: 2px; overflow: hidden; }
 .bars .bar span { display: block; height: 100%; background: var(--c); }
@@ -177,8 +181,9 @@ code { font-size: 0.8em; }
 /* fine grid: light plane with a soft shadow, columns on a canvas overlay */
 .spike-canvas { position: absolute; pointer-events: none; }
 .spikes-grid .plane { filter: drop-shadow(0 10px 14px rgba(40, 45, 80, 0.16)); }
-.spikes-grid .wk-base { fill: #fbfbfd; stroke: #eceef4; }
-.spikes-grid .land-border { stroke: #c4c7d4; stroke-width: 0.7; }
+.spikes-grid .wk-base { fill: #c9cbd2; stroke: #c9cbd2; stroke-width: 0.6; } /* schematic gray plane, no Wahlkreis lines */
+.spikes-grid .land-border { stroke: #f2f3f6; stroke-width: 0.9; }
+.country-outline { fill: none; stroke: #6d7080; stroke-width: 3.2; stroke-linejoin: round; vector-effect: non-scaling-stroke; pointer-events: none; }
 .spikes-grid .area:hover { stroke: var(--hover); stroke-width: 2; }
 
 /* municipality map */
@@ -189,5 +194,5 @@ code { font-size: 0.8em; }
 .gem-background { fill: var(--base-fill); stroke: none; pointer-events: none; }
 
 /* 3D raster: same light plane as the 2D raster */
-.map.is-3d.relief-raster { background: radial-gradient(ellipse at 50% 55%, #ffffff 0%, #f3f4f8 70%, #eceef4 100%); }
+.map.is-3d.relief-raster { background: #f4f5f7; }
 .relief-chip { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }

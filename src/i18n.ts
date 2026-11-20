@@ -34,6 +34,15 @@ const dict = {
   "scale.party": { de: "Je Partei", en: "Per party" },
   relief: { de: "Darstellung", en: "Style" },
   resolution: { de: "Auflösung", en: "Resolution" },
+  "measure.pct": { de: "Prozent", en: "Percent" },
+  "measure.abs": { de: "Absolut", en: "Absolute" },
+  measure: { de: "Werte", en: "Values" },
+  legendSpikesPct: { de: "Höhe = Stimmenanteil im Wahlkreis (%)", en: "Height = vote share in the constituency (%)" },
+  legendSpikesLandPct: { de: "Höhe = Stimmenanteil im Land (%)", en: "Height = vote share in the state (%)" },
+  legendGridPct: {
+    de: "Höhe = Stimmenanteil je 5-km-Rasterzelle (%) (Ergebnisse aller Wahlbezirke, Briefwahl auf die zugehörigen Urnenwahlbezirke verteilt)",
+    en: "Height = vote share per 5 km grid cell (%) (all polling districts; postal votes distributed to their polling-station districts)",
+  },
   "res.grid": { de: "Raster 5 km", en: "5 km grid" },
   legendGrid: {
     de: "Höhe = absolute Stimmenzahl je 5-km-Rasterzelle (Ergebnisse aller Wahlbezirke, Briefwahl auf die zugehörigen Urnenwahlbezirke verteilt)",
