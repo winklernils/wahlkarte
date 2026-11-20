@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wahlkarte · Bundestagswahl 2025</title>
+    <meta name="description" content="Interaktive Karten und Kartogramme zur Bundestagswahl 2025 – amtliches Endergebnis der Bundeswahlleiterin." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2l12 7v14l-12 7-12-7V9z' fill='%23262626'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="title">
+        <h1 id="title">Bundestagswahl 2025</h1>
+        <p id="subtitle" class="muted"></p>
+      </div>
+      <div class="top-actions">
+        <button class="btn small" id="lang-btn" type="button"></button>
+        <button class="btn small" id="theme-btn" type="button" aria-label="Theme">◐</button>
+        <button class="btn small" id="sources-btn" type="button"></button>
+      </div>
+    </header>
+    <section id="national" class="national"></section>
+    <nav id="controls" class="controls" aria-label="Controls"></nav>
+    <main class="layout">
+      <figure class="map-wrap">
+        <div id="map" class="map"><p class="loading" id="loading">…</p></div>
+        <figcaption id="legend" class="legend"></figcaption>
+      </figure>
+      <aside id="details" class="details" aria-live="polite"></aside>
+    </main>
+    <footer class="foot muted" id="foot"></footer>
+    <dialog id="sources"></dialog>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

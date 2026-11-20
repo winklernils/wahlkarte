@@ -1,0 +1,62 @@
+[
+  {
+    "id": "kerg2",
+    "file": "kerg2.csv",
+    "url": "https://www.bundeswahlleiterin.de/bundestagswahlen/2025/ergebnisse/opendata/btw25/csv/kerg2.csv",
+    "title_de": "Endgültiges Ergebnis der Bundestagswahl 2025 (Wahlkreise, Länder, Bund), Open-Data-CSV im Langformat",
+    "title_en": "Final official result of the 2025 Bundestag election (constituencies, states, federal), open-data CSV, long format",
+    "page": "https://www.bundeswahlleiterin.de/bundestagswahlen/2025/ergebnisse/opendata.html",
+    "licence": "© Die Bundeswahlleiterin, Wiesbaden 2025; Datenlizenz Deutschland – Namensnennung – Version 2.0 (dl-de/by-2-0)",
+    "retrieved": "2026-11-20",
+    "sha256": "c68b097e37da16b13a21c0b21871a7e06b1fd8d6c32e01a415d434becf761288",
+    "bytes": 1792225
+  },
+  {
+    "id": "strukturdaten",
+    "file": "btw2025_strukturdaten.csv",
+    "url": "https://www.bundeswahlleiterin.de/dam/jcr/181f9e38-38db-4f64-991c-8141dfa0f2cb/btw2025_strukturdaten.csv",
+    "title_de": "Strukturdaten der Wahlkreise zur Bundestagswahl 2025",
+    "title_en": "Structural data of the constituencies, 2025 Bundestag election",
+    "page": "https://www.bundeswahlleiterin.de/bundestagswahlen/2025/ergebnisse/opendata.html",
+    "licence": "© Die Bundeswahlleiterin, Wiesbaden 2024 (Quelle: Statistische Ämter des Bundes und der Länder); dl-de/by-2-0",
+    "retrieved": "2026-11-20",
+    "sha256": "8f833507b7cb6c903d112c4b843d956d3ce2283ad3de8e165e6de942cf289ceb",
+    "bytes": 98388
+  },
+  {
+    "id": "geometry",
+    "file": "btw25_geometrie_wahlkreise_shp_geo.zip",
+    "url": "https://www.bundeswahlleiterin.de/dam/jcr/556bec9c-be80-4818-a368-fe6596f15f08/btw25_geometrie_wahlkreise_shp_geo.zip",
+    "title_de": "Wahlkreisgeometrien Bundestagswahl 2025 (generalisiert, Shapefile, geografische Koordinaten)",
+    "title_en": "Constituency boundaries, 2025 Bundestag election (generalised, shapefile, geographic coordinates)",
+    "page": "https://www.bundeswahlleiterin.de/bundestagswahlen/2025/wahlkreiseinteilung/downloads.html",
+    "licence": "© Die Bundeswahlleiterin, Wiesbaden 2024; Wahlkreise: Statistische Ämter des Bundes und der Länder; Geometrische Grundlage: © GeoBasis-DE / BKG (dl-de/by-2-0)",
+    "retrieved": "2026-11-20",
+    "sha256": "3e6fc89bba314a7840ad1dde3de29e7cd4116962b3f92aef698083e27a05784a",
+    "bytes": 647035
+  },
+  {
+    "id": "wahlbezirke",
+    "file": "btw25_wbz.zip",
+    "url": "https://www.bundeswahlleiterin.de/dam/jcr/e79a7bd3-0607-4e87-9752-8e601e299e00/btw25_wbz.zip",
+    "title_de": "Wahlbezirksstatistik zur Bundestagswahl 2025: Ergebnisse aller Urnen- und Briefwahlbezirke",
+    "title_en": "Polling-district statistics, 2025 Bundestag election: results of all polling-station and postal districts",
+    "page": "https://www.bundeswahlleiterin.de/bundestagswahlen/2025/ergebnisse/weitere-ergebnisse.html",
+    "licence": "© Die Bundeswahlleiterin (im Auftrag der Herausgebergemeinschaft), Wiesbaden 2025; dl-de/by-2-0",
+    "retrieved": "2026-11-20",
+    "sha256": "faedc8af49617131af59af9edeb38c17a166bea5c3badfc7ed566e4d49c7e516",
+    "bytes": 6059110
+  },
+  {
+    "id": "gemeinden",
+    "file": "vg250_12-31.utm32s.shape.ebenen.zip",
+    "url": "https://daten.gdz.bkg.bund.de/produkte/vg/vg250_ebenen_1231/2024/vg250_12-31.utm32s.shape.ebenen.zip",
+    "title_de": "Verwaltungsgebiete 1:250 000 (VG250), Gebietsstand 31.12.2024 – Gemeindegrenzen",
+    "title_en": "Administrative areas 1:250,000 (VG250), as of 31 Dec 2024 – municipality boundaries",
+    "page": "https://gdz.bkg.bund.de/index.php/default/verwaltungsgebiete-1-250-000-stand-31-12-vg250-31-12.html",
+    "licence": "© GeoBasis-DE / BKG (2024), Bundesamt für Kartographie und Geodäsie; dl-de/by-2-0",
+    "retrieved": "2026-11-20",
+    "sha256": "ec8c0262e35c1fa4d8909c4ff8c7b90a9a2c498db29c247361c36833fcafe23e",
+    "bytes": 68879175
+  }
+]

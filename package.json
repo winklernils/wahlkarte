@@ -1,0 +1,31 @@
+{
+  "name": "wahlkarte",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "data:fetch": ".venv/bin/python -I scripts/fetch_sources.py",
+    "data:build": ".venv/bin/python -I scripts/build_data.py && mapshaper data/interim/wahlkreise.geojson -simplify 10% keep-shapes -rename-layers wahlkreise -dissolve land copy-fields=land + name=laender -o target=* format=topojson quantization=100000 public/data/geo.topo.json",
+    "data:layouts": ".venv/bin/python -I scripts/build_layouts.py",
+    "data": "npm run data:fetch && npm run data:build && npm run data:layouts && npm run data:grid",
+    "data:grid": ".venv/bin/python -I scripts/build_grid.py && mapshaper data/interim/gemeinden.geojson -simplify 2% keep-shapes -rename-layers gemeinden -o format=topojson quantization=20000 public/data/gemeinden.topo.json"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.3",
+    "@types/geojson": "^7946.0.16",
+    "@types/topojson-client": "^3.1.5",
+    "@types/topojson-specification": "^1.0.5",
+    "mapshaper": "^0.8.6",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  },
+  "dependencies": {
+    "@deck.gl/core": "^9.4.1",
+    "@deck.gl/layers": "^9.4.1",
+    "d3": "^7.9.2",
+    "topojson-client": "^3.1.0"
+  }
+}
